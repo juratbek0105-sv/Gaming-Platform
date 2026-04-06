@@ -27,6 +27,7 @@ npm-debug.log*
 # OS
 .DS_Store
 Thumbs.db
+node_modules/
 
-# Package lock (ixtiyoriy — kerak bo'lsa olib tashlang)
-# package-lock.json
+# Local uploads
+backend/uploads/

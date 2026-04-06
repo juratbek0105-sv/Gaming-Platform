@@ -1,6 +1,9 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'auth' })
 
+const router = useRouter()
+const { register } = useAuth()
+
 const form = reactive({
   username: '',
   email: '',
@@ -12,6 +15,19 @@ const form = reactive({
 const showPassword = ref(false)
 const showConfirm = ref(false)
 const isLoading = ref(false)
+const isSuccess = ref(false)
+const touched = reactive({ username: false, email: false, password: false })
+
+const isValidUsername = (u: string) => /^[a-zA-Z0-9_]{3,20}$/.test(u)
+const isValidEmail = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)
+
+const errors = computed(() => ({
+  username: touched.username && !isValidUsername(form.username)
+    ? form.username.length < 3 ? 'Kamida 3 ta belgi' : form.username.length > 20 ? 'Ko\'pi bilan 20 ta belgi' : 'Faqat harflar, raqamlar va _ ruxsat etiladi'
+    : '',
+  email: touched.email && !isValidEmail(form.email) ? 'To\'g\'ri email manzil kiriting' : '',
+  password: touched.password && form.password.length < 6 ? 'Kamida 6 ta belgi' : '',
+}))
 
 const strength = computed(() => {
   const p = form.password
@@ -34,10 +50,28 @@ const strength = computed(() => {
 
 const matched = computed(() => form.confirmPassword.length > 0 && form.password === form.confirmPassword)
 const mismatched = computed(() => form.confirmPassword.length > 0 && form.password !== form.confirmPassword)
+const isFormValid = computed(() => isValidUsername(form.username) && isValidEmail(form.email) && form.password.length >= 6 && matched.value && form.agreeTerms)
 
 const handleSignup = async () => {
+  touched.username = true; touched.email = true; touched.password = true
+  if (!isFormValid.value) return
   isLoading.value = true
-  setTimeout(() => { isLoading.value = false }, 1500)
+  
+  try {
+    await register({
+      username: form.username,
+      email: form.email,
+      password: form.password
+    })
+    isSuccess.value = true
+    setTimeout(() => {
+      router.push('/') 
+    }, 1000)
+  } catch (err: any) {
+    alert(err.data?.message || 'Ro\'yxatdan o\'tishda xatolik yuz berdi')
+  } finally {
+    isLoading.value = false
+  }
 }
 </script>
 
@@ -72,12 +106,17 @@ const handleSignup = async () => {
 
     <form @submit.prevent="handleSignup" class="space-y-4">
       <!-- Username -->
-      <div class="space-y-2">
+      <div class="space-y-1.5">
         <Label for="username">Gamer nomi</Label>
         <div class="relative">
           <svg class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 1 0-16 0"/></svg>
-          <Input id="username" v-model="form.username" type="text" placeholder="ProGamer_2026" class="pl-10 h-11" required autocomplete="username" />
+          <Input id="username" v-model="form.username" type="text" placeholder="ProGamer_2026" class="pl-10 h-11" :class="errors.username ? 'border-red-500/50' : ''" autocomplete="username" @blur="touched.username = true" />
         </div>
+        <p v-if="errors.username" class="text-xs text-red-400 flex items-center gap-1">
+          <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
+          {{ errors.username }}
+        </p>
+        <p v-else class="text-[11px] text-muted-foreground/50">3-20 belgi, faqat harflar, raqamlar va _</p>
       </div>
 
       <!-- Email -->
@@ -136,9 +175,24 @@ const handleSignup = async () => {
         </Label>
       </div>
 
-      <Button type="submit" size="lg" class="w-full h-11 bg-violet-600 hover:bg-violet-500 text-white font-semibold" :disabled="isLoading || !form.agreeTerms">
-        <svg v-if="isLoading" class="w-4 h-4 mr-2 animate-spin" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
-        {{ isLoading ? "Yaratilmoqda..." : "Hisob yaratish" }}
+      <Button 
+        type="submit" 
+        size="lg" 
+        class="w-full h-11 transition-all" 
+        :class="isSuccess ? 'bg-emerald-500 hover:bg-emerald-500' : 'bg-primary hover:bg-primary/90 text-primary-foreground'"
+        :disabled="isLoading || isSuccess"
+      >
+        <template v-if="isLoading">
+          <svg class="w-4 h-4 mr-2 animate-spin" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+          Yaratilmoqda...
+        </template>
+        <template v-else-if="isSuccess">
+          <svg class="w-5 h-5 mr-2 animate-in zoom-in duration-300" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+          Ro'yxatdan o'tdingiz!
+        </template>
+        <template v-else>
+          Hisob yaratish
+        </template>
       </Button>
     </form>
 

@@ -9,15 +9,36 @@ const form = reactive({
 
 const showPassword = ref(false)
 const isLoading = ref(false)
+const isSuccess = ref(false)
+const touched = reactive({ email: false, password: false })
+
+const errors = computed(() => ({
+  email: touched.email && !isValidEmail(form.email) ? 'To\'g\'ri email manzil kiriting' : '',
+  password: touched.password && form.password.length < 6 ? 'Parol kamida 6 ta belgidan iborat bo\'lishi kerak' : '',
+}))
+
+const isValidEmail = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)
+const isValid = computed(() => isValidEmail(form.email) && form.password.length >= 6)
 
 const router = useRouter()
-
+const { login } = useAuth()
 const handleLogin = async () => {
+  touched.email = true
+  touched.password = true
+  if (!isValid.value) return
   isLoading.value = true
-  setTimeout(() => {
+  
+  try {
+    await login({ email: form.email, password: form.password })
+    isSuccess.value = true
+    setTimeout(() => {
+      router.push('/')
+    }, 1000)
+  } catch (err: any) {
+    alert(err.data?.message || 'Kirishda xatolik yuz berdi')
+  } finally {
     isLoading.value = false
-    router.push('/')
-  }, 1500)
+  }
 }
 </script>
 
@@ -51,15 +72,13 @@ const handleLogin = async () => {
     <!-- Divider -->
     <div class="relative my-6">
       <Separator />
-      <span class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-3 text-xs text-muted-foreground">
-        yoki
-      </span>
+      <span class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-3 text-xs text-muted-foreground">yoki</span>
     </div>
 
     <!-- Form -->
     <form @submit.prevent="handleLogin" class="space-y-4">
       <!-- Email -->
-      <div class="space-y-2">
+      <div class="space-y-1.5">
         <Label for="email">Email</Label>
         <div class="relative">
           <svg class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
@@ -69,14 +88,19 @@ const handleLogin = async () => {
             type="email"
             placeholder="gamer@jamoa.uz"
             class="pl-10 h-11"
-            required
+            :class="errors.email ? 'border-red-500/50 focus:ring-red-500/30' : ''"
             autocomplete="email"
+            @blur="touched.email = true"
           />
         </div>
+        <p v-if="errors.email" class="text-xs text-red-400 mt-0.5 flex items-center gap-1">
+          <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
+          {{ errors.email }}
+        </p>
       </div>
 
       <!-- Password -->
-      <div class="space-y-2">
+      <div class="space-y-1.5">
         <div class="flex items-center justify-between">
           <Label for="password">Parol</Label>
           <NuxtLink to="/auth/forgot-password" class="text-xs text-violet-400 hover:text-violet-300 transition-colors">
@@ -91,14 +115,19 @@ const handleLogin = async () => {
             :type="showPassword ? 'text' : 'password'"
             placeholder="••••••••"
             class="pl-10 pr-10 h-11"
-            required
+            :class="errors.password ? 'border-red-500/50 focus:ring-red-500/30' : ''"
             autocomplete="current-password"
+            @blur="touched.password = true"
           />
           <button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors" @click="showPassword = !showPassword">
             <svg v-if="!showPassword" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
             <svg v-else xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" x2="23" y1="1" y2="23"/></svg>
           </button>
         </div>
+        <p v-if="errors.password" class="text-xs text-red-400 mt-0.5 flex items-center gap-1">
+          <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
+          {{ errors.password }}
+        </p>
       </div>
 
       <!-- Remember -->
@@ -108,9 +137,24 @@ const handleLogin = async () => {
       </div>
 
       <!-- Submit -->
-      <Button type="submit" size="lg" class="w-full h-11 bg-violet-600 hover:bg-violet-500 text-white font-semibold" :disabled="isLoading">
-        <svg v-if="isLoading" class="w-4 h-4 mr-2 animate-spin" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
-        {{ isLoading ? 'Kirish...' : "Kirish" }}
+      <Button
+        type="submit"
+        size="lg"
+        class="w-full h-11 transition-all"
+        :class="isSuccess ? 'bg-emerald-500 hover:bg-emerald-500' : 'bg-violet-600 hover:bg-violet-500'"
+        :disabled="isLoading || isSuccess"
+      >
+        <template v-if="isLoading">
+          <svg class="w-4 h-4 mr-2 animate-spin" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+          Kirish...
+        </template>
+        <template v-else-if="isSuccess">
+          <svg class="w-5 h-5 mr-2 animate-in zoom-in duration-300" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+          Muvaffaqiyatli!
+        </template>
+        <template v-else>
+          Kirish
+        </template>
       </Button>
     </form>
 
