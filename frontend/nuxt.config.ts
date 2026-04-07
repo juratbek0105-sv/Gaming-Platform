@@ -5,6 +5,11 @@ export default defineNuxtConfig({
     '@nuxtjs/tailwindcss',
     'shadcn-nuxt',
   ],
+  runtimeConfig: {
+    public: {
+      apiBase: '', // Will be overridden by NUXT_PUBLIC_API_BASE
+    }
+  },
   shadcn: {
     prefix: '',
     componentDir: './components/ui',

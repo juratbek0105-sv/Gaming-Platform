@@ -41,11 +41,11 @@ const buildApp = async () => {
     })
 
     // Routes
-    await app.register(import('./routes/auth'), { prefix: '/api/auth' })
-    await app.register(import('./routes/user'), { prefix: '/api/users' })
-    await app.register(import('./routes/post'), { prefix: '/api/posts' })
-    await app.register(import('./routes/community'), { prefix: '/api/community' })
-    await app.register(import('./routes/upload'), { prefix: '/api/upload' })
+    await app.register(import('./routes/auth'), { prefix: '/auth' })
+    await app.register(import('./routes/user'), { prefix: '/users' })
+    await app.register(import('./routes/post'), { prefix: '/posts' })
+    await app.register(import('./routes/community'), { prefix: '/community' })
+    await app.register(import('./routes/upload'), { prefix: '/upload' })
 
     // Static files for uploads
     app.register(import('@fastify/static'), {
